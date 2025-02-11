@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048ゲーム</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #faf8ef;
+        }
+        h1 {
+            font-size: 40px;
+        }
+        .game-container {
+            display: inline-block;
+            background: #bbada0;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 20px;
+            touch-action: none;
+        }
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(4, 90px); /* 変更 */
+          grid-template-rows: repeat(4, 90px); /* 変更 */
+          gap: 5px; /* 変更 */
+        }
+
+        .tile {
+            width: 90px; /* 変更 */
+            height: 90px; /* 変更 */
+            line-height: 90px; /* 変更 */
+            font-size: 25px; /* 変更 */
+            font-weight: bold;
+            text-align: center;
+            border-radius: 5px;
+            background: #cdc1b4;
+            color: #776e65;
+        }
+        .tile[data-value="2"] { background: #eee4da; }
+        .tile[data-value="4"] { background: #ede0c8; }
+        .tile[data-value="8"] { background: #f2b179; color: white; }
+        .tile[data-value="16"] { background: #f59563; color: white; }
+        .tile[data-value="32"] { background: #f67c5f; color: white; }
+        .tile[data-value="64"] { background: #f65e3b; color: white; }
+        .tile[data-value="128"] { background: #edcf72; color: white; }
+        .tile[data-value="256"] { background: #edcc61; color: white; }
+        .tile[data-value="512"] { background: #edc850; color: white; }
+        .tile[data-value="1024"] { background: #edc53f; color: white; }
+        .tile[data-value="2048"] { background: #edc22e; color: white; }
+        .button {
+            padding: 10px 20px;
+            font-size: 20px;
+            background-color: #8f7a66;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .yohaku {
+            padding: 10px 20px;
+            font-size: 20px;
+            background-color: #faf8ef;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .button:hover {
+            background-color: #bbada0;
+        }
+        .input-container {
+            margin-top: 20px;
+        }
+        .input-container select {
+            font-size: 20px;
+            padding: 10px;
+        }
+        .counter {
+            margin-top: 20px;
+            font-size: 20px;
+        }
+        .results {
+            margin-top: 30px;
+            font-size: 18px;
+        }
+        .control-buttons {
+            margin-top: 20px;
+        }
+        .control-buttons button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>2048ゲーム</h1>
+    <div class="input-container">
+        <label for="goalSelect">ゴールを設定:</label>
+        <select id="goalSelect" onchange="setGoal()">
+            <option value="8">8</option>
+            <option value="16">16</option>
+            <option value="32">32</option>
+            <option value="64">64</option>
+            <option value="128">128</option>
+            <option value="256">256</option>
+            <option value="512">512</option>
+            <option value="1024">1024</option>
+            <option value="2048">2048</option>
+        </select>
+    </div>
+    <div class="counter" id="moveCounter">動かした回数: 0</div>
+    <button class="button" onclick="resetGame()">リセット</button>
+    <div class="game-container">
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <!-- 操作ボタン -->
+    <div class="control-buttons">
+        <button class="button" onclick="move('up')">▲</button>
+        <br />
+        <button class="button" onclick="move('left')">◀</button>
+        <button class="yohaku" ></button>
+        <button class="button" onclick="move('right')">▶</button>
+        <br />
+        <button class="button" onclick="move('down')">▼</button>
+    </div>
+    
+    <!-- 結果表示用 -->
+    <div class="results" id="gameResults">
+        <!-- 結果がここに表示されます -->
+    </div>
+
+    <script>
+        const gridSize = 4;
+        let board;
+        let goal = 8; // 初期ゴール設定
+        let moveCount = 0; // 動かした回数
+
+        // ゴール設定
+        function setGoal() {
+            const select = document.getElementById("goalSelect");
+            goal = parseInt(select.value);
+        }
+
+        // ゲーム盤の表示
+        function createBoard() {
+            const gridElement = document.getElementById("grid");
+            gridElement.innerHTML = "";
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    const tile = document.createElement("div");
+                    tile.classList.add("tile");
+                    if (board[row][col] !== 0) {
+                        tile.textContent = board[row][col];
+                        tile.setAttribute("data-value", board[row][col]);
+                    }
+                    gridElement.appendChild(tile);
+                }
+            }
+        }
+
+        // ランダムなタイルを追加
+        function addRandomTile() {
+            let emptyCells = [];
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    if (board[row][col] === 0) emptyCells.push({ row, col });
+                }
+            }
+            if (emptyCells.length > 0) {
+                let { row, col } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                board[row][col] = Math.random() < 0.9 ? 2 : 4;
+            }
+        }
+
+        // 行をスライド処理
+        function slide(row) {
+            let newRow = row.filter(val => val);
+            for (let i = 0; i < newRow.length - 1; i++) {
+                if (newRow[i] === newRow[i + 1]) {
+                    newRow[i] *= 2;
+                    newRow.splice(i + 1, 1);
+                }
+            }
+            while (newRow.length < gridSize) {
+                newRow.push(0);
+            }
+            return newRow;
+        }
+
+        // 盤面を90度回転
+        function rotateBoard(clockwise = true) {
+            let newBoard = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    if (clockwise) {
+                        newBoard[col][gridSize - 1 - row] = board[row][col];
+                    } else {
+                        newBoard[gridSize - 1 - col][row] = board[row][col];
+                    }
+                }
+            }
+            return newBoard;
+        }
+
+        // 指定した方向にタイルを移動
+        function move(direction) {
+            moveCount++; // 移動回数をインクリメント
+            updateMoveCounter(); // 移動回数を更新
+
+            if (direction === "left") {
+                board = board.map(row => slide(row));
+            } else if (direction === "right") {
+                board = board.map(row => slide(row.reverse()).reverse());
+            } else if (direction === "up") {
+                board = rotateBoard(false);
+                board = board.map(row => slide(row));
+                board = rotateBoard(true);
+            } else if (direction === "down") {
+                board = rotateBoard(false);
+                board = board.map(row => slide(row.reverse()).reverse());
+                board = rotateBoard(true);
+            }
+            addRandomTile();
+            createBoard();
+            checkWin();  // ゴールに達したかチェック
+            checkGameOver(); // 詰んでないかチェック
+        }
+
+        // 動かした回数の表示更新
+        function updateMoveCounter() {
+            document.getElementById("moveCounter").textContent = `動かした回数: ${moveCount}`;
+        }
+
+        // ゴールタイルができたらゲームクリア
+        function checkWin() {
+          for (let row = 0; row < gridSize; row++) {
+            for (let col = 0; col < gridSize; col++) {
+              if (board[row][col] === goal) {
+                setTimeout(() => {
+                    alert(`${goal}タイルを作成！ゲームクリア！動かした回数: ${moveCount}`);
+                    updateGameResults(); // ゲーム終了後に結果を表示
+                }, 100);
+                return;
+              }
+            }
+          }
+        }
+
+        // ゲームオーバー判定
+        function checkGameOver() {
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    if (board[row][col] === 0) return;
+                    if (col < gridSize - 1 && board[row][col] === board[row][col + 1]) return;
+                    if (row < gridSize - 1 && board[row][col] === board[row + 1][col]) return;
+                }
+            }
+            alert("ゲームオーバー！リロードして再挑戦！");
+        }
+
+        function updateGameResults() {
+          const resultElement = document.getElementById("gameResults");
+          // 新しい結果のための要素を作成
+          const resultLine = document.createElement("div");
+          resultLine.textContent = `ゴール: ${goal} タイル | 動かした回数: ${moveCount}`;
+          // 結果を追加
+          resultElement.appendChild(resultLine);
+        }
+
+
+        // ゲーム開始
+        function startGame() {
+            board = Array(gridSize).fill().map(() => Array(gridSize).fill(0));  // ゲーム盤をリセット
+            addRandomTile();
+            addRandomTile();
+            moveCount = 0; // 移動回数リセット
+            updateMoveCounter(); // 移動回数を表示
+            createBoard();
+        }
+
+        // リセットボタンをクリックした時にゲームをリセット
+        function resetGame() {
+            startGame();
+        }
+
+        startGame();
+    </script>
+</body>
+</html>
